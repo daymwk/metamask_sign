@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sign message with metamask</title>
+</head>
+
+<body>
+Text message: <input type="text" id="msg" name="msg"><br><br>
+<input type="submit" value="Sign" id="sign" onclick="sign_message()">
+<pre id="res">Result here</pre>
+</body>
+<script>
+async function sign_message() {
+	message = document.getElementById("msg").value;
+	const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+	const account = accounts[0]
+	const signature = await ethereum.request({ method: 'personal_sign', params: [ message, account ] });
+	document.getElementById('res').innerHTML = "Address: " + account + "\n Message Signature Hash: " + signature + "\n Original message: " + message
+}
+</script>
+
+</html>
