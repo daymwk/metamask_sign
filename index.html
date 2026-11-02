@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign message with MetaMask</title>
+<style>
+  :root {
+    --bg: #eef2f6;
+    --surface: #fff;
+    --ink: #1b2a3a;
+    --muted: #5f7184;
+    --faint: #8a99a8;
+    --line: #d4dde6;
+    --hover: #e7edf3;
+    --primary: #15527d;
+    --primary-hover: #0f3f61;
+    --ok: #1a7f37;
+    --danger: #c0392b;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --serif: "Didot", "Bodoni MT", "Playfair Display", Georgia, "Times New Roman", serif;
+    --shadow: 0 1px 2px rgba(27, 42, 58, .04), 0 18px 40px -30px rgba(27, 42, 58, .45);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 16px 64px;
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font); font-size: 15px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 20px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow);
+    padding: 28px;
+  }
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .28em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  h1 { font-family: var(--serif); font-size: 30px; font-weight: 600; margin: 6px 0 0; }
+  h2 { font-family: var(--serif); font-size: 22px; font-weight: 600; margin: 6px 0 0; }
+  .rule { height: 1px; background: var(--line); margin: 18px 0 22px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 22px; }
+  label { display: block; font-size: 12px; font-weight: 700; letter-spacing: .12em;
+          text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  textarea, input[type="text"] {
+    width: 100%; padding: 12px 14px;
+    font-family: var(--mono); font-size: 14px; color: var(--ink);
+    background: #fbfdff; border: 1px solid var(--line); border-radius: var(--radius);
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  textarea:focus, input:focus, button:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+  button {
+    font: inherit; font-weight: 600; cursor: pointer;
+    border-radius: var(--radius); padding: 11px 20px;
+    border: 1px solid var(--primary); background: var(--primary); color: #fff;
+  }
+  button:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--primary); }
+  button.ghost:hover:not(:disabled) { background: var(--hover); }
+  .status { font-size: 13px; color: var(--muted); }
+  .banner {
+    display: none; border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px;
+    border: 1px solid var(--line); background: #f8fafc; font-size: 14px;
+  }
+  .banner.show { display: block; }
+  .banner.error { border-color: rgba(192, 57, 43, .35); background: #fdf3f2; color: #8c2a20; }
+  .banner b { font-weight: 700; }
+  .banner code {
+    font-family: var(--mono); font-size: 12.5px; background: #fff;
+    border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px;
+  }
+  #out { display: none; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 20px; }
+  #out.show { display: block; }
+  .field { margin-bottom: 14px; }
+  .field-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .field-k { font-size: 12px; font-weight: 700; letter-spacing: .12em;
+             text-transform: uppercase; color: var(--muted); }
+  .field-v {
+    font-family: var(--mono); font-size: 13px; word-break: break-all;
+    background: #fbfdff; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 10px 12px; margin-top: 6px; white-space: pre-wrap;
+  }
+  .copy {
+    font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    padding: 5px 10px; border-radius: 6px; background: transparent;
+    border: 1px solid var(--line); color: var(--muted);
+  }
+  .copy:hover:not(:disabled) { background: var(--hover); color: var(--primary); }
+  .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+  .meta b { color: var(--ink); font-family: var(--mono); font-weight: 600; }
+  .verdict {
+    display: none; margin-top: 16px; padding: 12px 14px; border-radius: var(--radius);
+    font-size: 14px; border: 1px solid var(--line);
+  }
+  .verdict.show { display: block; }
+  .verdict.ok { border-color: rgba(26, 127, 55, .35); background: #f2faf4; color: #146230; }
+  .verdict.bad { border-color: rgba(192, 57, 43, .35); background: #fdf3f2; color: #8c2a20; }
+  .verdict code { font-family: var(--mono); font-size: 12.5px; word-break: break-all; }
+  footer { text-align: center; font-size: 12px; color: var(--faint); }
+  a { color: var(--primary); }
+  .hint { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+  .gap { height: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <div class="eyebrow">prt.run</div>
+    <h1>Sign message with MetaMask</h1>
+    <div class="rule"></div>
+    <div class="sub">Signature <code>personal_sign</code> (EIP-191) sur le compte actif de ton wallet. Rien ne part sur le réseau.</div>
+
+    <div id="banner" class="banner"></div>
+
+    <div class="meta">
+      <span>Wallet : <b id="m-provider">—</b></span>
+      <span>Compte : <b id="m-account">—</b></span>
+      <span>Chain : <b id="m-chain">—</b></span>
+    </div>
+
+    <label for="msg">Message</label>
+    <textarea id="msg" placeholder="Message à signer…" spellcheck="false"></textarea>
+
+    <div class="row">
+      <button id="sign" type="button">Signer</button>
+      <span id="status" class="status"></span>
+    </div>
+
+    <div id="out">
+      <div class="field">
+        <div class="field-head"><span class="field-k">Adresse</span><button class="copy" data-copy="v-address">Copier</button></div>
+        <div class="field-v" id="v-address"></div>
+      </div>
+      <div class="field">
+        <div class="field-head"><span class="field-k">Signature</span><button class="copy" data-copy="v-sig">Copier</button></div>
+        <div class="field-v" id="v-sig"></div>
+      </div>
+      <div class="field">
+        <div class="field-head"><span class="field-k">Message original</span><button class="copy" data-copy="v-msg">Copier</button></div>
+        <div class="field-v" id="v-msg"></div>
+      </div>
+      <div id="verdict-sign" class="verdict"></div>
+      <div class="row">
+        <button id="to-verify" class="ghost" type="button">Vérifier dans le panneau ci-dessous</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow">vérification locale</div>
+    <h2>Vérifier une signature</h2>
+    <div class="rule"></div>
+    <div class="sub">Recalcule l'adresse depuis le message et la signature (secp256k1 + Keccak-256 en JS local). Aucun appel réseau, pas de Cloudflare.</div>
+
+    <label for="v-addr-in">Adresse</label>
+    <input type="text" id="v-addr-in" placeholder="0x…" spellcheck="false" autocomplete="off">
+    <div class="gap"></div>
+    <label for="v-msg-in">Message</label>
+    <textarea id="v-msg-in" placeholder="Le message exact qui a été signé" spellcheck="false"></textarea>
+    <div class="gap"></div>
+    <label for="v-sig-in">Signature</label>
+    <input type="text" id="v-sig-in" placeholder="0x… (65 octets)" spellcheck="false" autocomplete="off">
+
+    <div class="row">
+      <button id="verify" type="button">Vérifier</button>
+      <span id="v-status" class="status"></span>
+    </div>
+    <div id="verdict-check" class="verdict"></div>
+    <div class="hint"><a href="https://etherscan.io/verifiedSignatures" target="_blank" rel="noopener">etherscan.io/verifiedSignatures →</a></div>
+  </div>
+
+</div>
+
+<script src="verify.js"></script>
+<script>
+"use strict";
+
+var FILE_HINT =
+  '<b>MetaMask ne s\'injecte pas sur une page <code>file://</code>.</b> ' +
+  'Sers le dossier en HTTP : <code>cd ~/Bureau/metamask_sign &amp;&amp; python3 -m http.server 8898 --bind 127.0.0.1</code> ' +
+  'puis ouvre <code>http://127.0.0.1:8898/index.html</code>. ' +
+  'Vérifie aussi que l\'extension MetaMask est active (et pas en navigation privée).';
+
+var $ = function (id) { return document.getElementById(id); };
+var provider = null;
+var account = null;
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+function showBanner(kind, html) {
+  var b = $("banner");
+  b.className = "banner show " + kind;
+  b.innerHTML = html;
+}
+function hideBanner() { $("banner").className = "banner"; }
+function setStatus(t) { $("status").textContent = t || ""; }
+function short(a) { return a ? a.slice(0, 6) + "…" + a.slice(-4) : "—"; }
+
+function pickProvider(p, name) {
+  provider = p;
+  $("m-provider").textContent = name || (p && p.isMetaMask ? "MetaMask" : "injected");
+  if (p.on) {
+    p.on("accountsChanged", function (accs) {
+      account = accs && accs[0] ? accs[0] : null;
+      $("m-account").textContent = account ? short(account) : "—";
+      $("m-account").title = account || "";
+    });
+    p.on("chainChanged", function (c) { $("m-chain").textContent = c || "—"; });
+  }
+  if (p.chainId) $("m-chain").textContent = p.chainId;
+}
+
+function utf8ToHex(str) {
+  var bytes = new TextEncoder().encode(str);
+  var out = "0x";
+  for (var i = 0; i < bytes.length; i++) out += bytes[i].toString(16).padStart(2, "0");
+  return out;
+}
+
+function errText(e) {
+  var code = e && e.code;
+  var msg = (e && (e.message || (e.data && e.data.message))) || String(e);
+  if (code === 4001 || code === "ACTION_REJECTED") return "Signature refusée dans le wallet.";
+  if (code === -32002) return "Une demande est déjà en attente dans MetaMask : ouvre l'extension.";
+  return msg;
+}
+
+async function init() {
+  if (window.ethereum) { pickProvider(window.ethereum, window.ethereum.isMetaMask ? "MetaMask" : null); return true; }
+  if (provider) return true;
+  if (location.protocol === "file:") { showBanner("error", FILE_HINT); return false; }
+  showBanner("error",
+    "<b>Aucun wallet détecté.</b> Installe/active MetaMask (extension), recharge la page, " +
+    "et vérifie qu'il n'est pas bloqué sur cette origine.");
+  return false;
+}
+
+// EIP-6963 : autres wallets injectés (si MetaMask n'est pas le seul).
+window.addEventListener("eip6963:announceProvider", function (e) {
+  if (!provider) pickProvider(e.detail.provider, e.detail.info && e.detail.info.name);
+});
+window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+function verifyLocal(address, message, signature) {
+  if (!window.MMVerify) throw new Error("verify.js n'a pas pu être chargé");
+  return window.MMVerify.verifyPersonal(message, address, signature);
+}
+
+function renderVerdict(el, res, address) {
+  el.className = "verdict show " + (res.ok ? "ok" : "bad");
+  if (res.ok) {
+    el.innerHTML = "✓ Signature valide — adresse récupérée : <code>" + escapeHtml(res.recovered) + "</code>.";
+  } else {
+    el.innerHTML = "✗ Signature invalide pour cette adresse. Adresse récupérée : <code>" +
+      escapeHtml(res.recovered) + "</code>" +
+      (address ? " (attendue : <code>" + escapeHtml(address) + "</code>)" : "") + ".";
+  }
+}
+
+$("sign").addEventListener("click", async function () {
+  var btn = $("sign");
+  var message = $("msg").value;
+  hideBanner();
+  $("out").className = "";
+  $("verdict-sign").className = "verdict";
+
+  if (!message.trim()) { setStatus("Message vide."); $("msg").focus(); return; }
+  if (!(await init())) { setStatus(""); return; }
+
+  btn.disabled = true;
+  setStatus("Demande à MetaMask…");
+  try {
+    var accounts = await provider.request({ method: "eth_requestAccounts" });
+    account = accounts && accounts[0];
+    if (!account) throw new Error("Aucun compte exposé par le wallet.");
+
+    var chainId = await provider.request({ method: "eth_chainId" }).catch(function () { return null; });
+    $("m-account").textContent = short(account);
+    $("m-account").title = account;
+    if (chainId) $("m-chain").textContent = chainId;
+
+    setStatus("En attente de ta signature…");
+    var signature = await provider.request({
+      method: "personal_sign",
+      params: [utf8ToHex(message), account]   // message hex UTF-8, adresse
+    });
+
+    $("v-address").textContent = account;
+    $("v-sig").textContent = signature;
+    $("v-msg").textContent = message;
+    $("out").className = "show";
+    setStatus("");
+
+    try {
+      renderVerdict($("verdict-sign"), verifyLocal(account, message, signature), account);
+    } catch (e) {
+      $("verdict-sign").className = "verdict show bad";
+      $("verdict-sign").textContent = "Vérification locale impossible : " + errText(e);
+    }
+  } catch (e) {
+    showBanner("error", "<b>" + escapeHtml(errText(e)) + "</b>");
+    setStatus("");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("verify").addEventListener("click", function () {
+  var address = $("v-addr-in").value.trim();
+  var message = $("v-msg-in").value;
+  var signature = $("v-sig-in").value.trim();
+  var el = $("verdict-check");
+  $("v-status").textContent = "";
+
+  if (!address || !signature) {
+    el.className = "verdict show bad";
+    el.textContent = "Adresse et signature sont nécessaires (le message peut être vide).";
+    return;
+  }
+  try {
+    renderVerdict(el, verifyLocal(address, message, signature), address);
+  } catch (e) {
+    el.className = "verdict show bad";
+    el.textContent = "Vérification impossible : " + errText(e);
+  }
+});
+
+$("to-verify").addEventListener("click", function () {
+  $("v-addr-in").value = $("v-address").textContent;
+  $("v-msg-in").value = $("v-msg").textContent;
+  $("v-sig-in").value = $("v-sig").textContent;
+  $("verdict-check").className = "verdict";
+  $("verify").click();
+  $("verify").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+document.querySelectorAll(".copy").forEach(function (b) {
+  b.addEventListener("click", async function () {
+    var text = $(b.getAttribute("data-copy")).textContent;
+    try { await navigator.clipboard.writeText(text); } catch (_) {
+      var t = document.createElement("textarea");
+      t.value = text; document.body.appendChild(t); t.select();
+      document.execCommand("copy"); t.remove();
+    }
+    var old = b.textContent;
+    b.textContent = "Copié";
+    setTimeout(function () { b.textContent = old; }, 1200);
+  });
+});
+
+init();
+</script>
+</body>
+</html>
